@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0a0e27">
+<title>我的AI助手</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #0a0e27;
+    color: #fff;
+    user-select: none;
+  }
+
+  /* 背景图 */
+  .bg {
+    position: fixed;
+    inset: 0;
+    background: url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1200') center/cover no-repeat;
+    z-index: 0;
+  }
+  .bg::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(10,14,39,0.55) 0%, rgba(10,14,39,0.85) 100%);
+  }
+
+  /* 主容器 */
+  .app {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* 顶部栏 */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    padding-top: calc(14px + env(safe-area-inset-top));
+  }
+  .topbar .title {
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: 1px;
+  }
+  .topbar .menu-btn {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.08);
+    font-size: 18px;
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+  }
+
+  /* 中间欢迎区 */
+  .welcome {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    text-align: center;
+  }
+  .logo {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #4d7cff, #8b5cf6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 46px;
+    margin-bottom: 22px;
+    box-shadow: 0 10px 40px rgba(77,124,255,0.5);
+    animation: float 3s ease-in-out infinite;
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+  .welcome h1 {
+    font-size: 24px;
+    margin-bottom: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+  .welcome p {
+    font-size: 14px;
+    color: rgba(255,255,255,0.65);
+    line-height: 1.6;
+    margin-bottom: 32px;
+  }
+
+  /* 开始按钮 */
+  .start-btn {
+    padding: 16px 44px;
+    border: none;
+    border-radius: 50px;
+    background: linear-gradient(135deg, #4d7cff, #8b5cf6);
+    color: #fff;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    cursor: pointer;
+    box-shadow: 0 8px 30px rgba(77,124,255,0.5);
+    transition: 0.2s;
+  }
+  .start-btn:active {
+    transform: scale(0.96);
+    box-shadow: 0 4px 15px rgba(77,124,255,0.6);
+  }
+
+  /* 底部快速入口 */
+  .quick-links {
+    display: flex;
+    gap: 12px;
+    padding: 0 20px 24px;
+    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+  }
+  .quick-links a {
+    flex: 1;
+    text-align: center;
+    padding: 12px;
+    border-radius: 14px;
+    background: rgba(255,255,255,0.08);
+    color: #fff;
+    text-decoration: none;
+    font-size: 13px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  .quick-links a:active {
+    background: rgba(255,255,255,0.15);
+  }
+
+  /* 侧边菜单 */
+  .drawer {
+    position: fixed;
+    top: 0;
+    left: -280px;
+    width: 280px;
+    height: 100%;
+    background: #131830;
+    z-index: 100;
+    transition: 0.3s;
+    padding-top: calc(30px + env(safe-area-inset-top));
+    box-shadow: 4px 0 30px rgba(0,0,0,0.5);
+  }
+  .drawer.open { left: 0; }
+  .drawer .drawer-title {
+    padding: 0 24px 20px;
+    font-size: 18px;
+    font-weight: 700;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .drawer ul { list-style: none; padding: 12px 0; }
+  .drawer li {
+    padding: 16px 24px;
+    font-size: 15px;
+    color: rgba(255,255,255,0.85);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .drawer li:active { background: rgba(255,255,255,0.06); }
+  .drawer li .icon { font-size: 18px; }
+
+  /* 遮罩 */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 99;
+    opacity: 0;
+    pointer-events: none;
+    transition: 0.3s;
+  }
+  .overlay.show { opacity: 1; pointer-events: auto; }
+
+  /* 关于弹窗 */
+  .modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.9);
+    width: 80%;
+    max-width: 320px;
+    background: #1a1f3a;
+    border-radius: 18px;
+    padding: 24px;
+    z-index: 200;
+    opacity: 0;
+    pointer-events: none;
+    transition: 0.25s;
+    text-align: center;
+  }
+  .modal.show {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  .modal h3 { font-size: 18px; margin-bottom: 12px; }
+  .modal p { font-size: 14px; color: rgba(255,255,255,0.7); line-height: 1.7; margin-bottom: 18px; }
+  .modal button {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #4d7cff, #8b5cf6);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<div class="bg"></div>
+
+<div class="app">
+  <div class="topbar">
+    <div class="menu-btn" onclick="toggleDrawer()">☰</div>
+    <div class="title">我的AI助手</div>
+    <div class="menu-btn" onclick="openAbout()">⋯</div>
+  </div>
+
+  <div class="welcome">
+    <div class="logo">🤖</div>
+    <h1>欢迎回来</h1>
+    <p>随时开始你的智能对话<br>解答问题 · 辅助学习 · 数学渲染</p>
+    <button class="start-btn" onclick="startChat()">✨ 开始对话</button>
+  </div>
+
+  <div class="quick-links">
+    <a href="https://chat.deepseek.com" target="_blank">💬 直接聊天</a>
+    <a href="#" onclick="openAbout()">ℹ️ 关于</a>
+  </div>
+</div>
+
+<div class="overlay" id="overlay" onclick="toggleDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-title">🤖 我的AI助手</div>
+  <ul>
+    <li onclick="startChat()"><span class="icon">💬</span> 开始对话</li>
+    <li onclick="openAbout()"><span class="icon">ℹ️</span> 关于</li>
+    <li onclick="alert('设置功能后续添加')"><span class="icon">⚙️</span> 设置</li>
+  </ul>
+</div>
+
+<div class="overlay" id="overlay2" onclick="closeAbout()"></div>
+<div class="modal" id="aboutModal">
+  <h3>关于本软件</h3>
+  <p>这是一个 AI 对话入口<br>点击"开始对话"将打开 DeepSeek<br>由 DeepSeek 提供智能解答</p>
+  <button onclick="closeAbout()">知道了</button>
+</div>
+
+<script>
+  function toggleDrawer() {
+    document.getElementById('drawer').classList.toggle('open');
+    document.getElementById('overlay').classList.toggle('show');
+  }
+
+  function startChat() {
+    window.open('https://chat.deepseek.com', '_blank');
+    document.getElementById('drawer').classList.remove('open');
+    document.getElementById('overlay').classList.remove('show');
+  }
+
+  function openAbout() {
+    document.getElementById('aboutModal').classList.add('show');
+    document.getElementById('overlay2').classList.add('show');
+  }
+
+  function closeAbout() {
+    document.getElementById('aboutModal').classList.remove('show');
+    document.getElementById('overlay2').classList.remove('show');
+  }
+</script>
+
+</body>
+</html>
